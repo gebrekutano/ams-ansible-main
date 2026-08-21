@@ -26,15 +26,21 @@
 
 - name: Add Docker apt repository
   apt_repository:
-    # Look closely below: We explicitly reference ansible_facts and sanitize architecture mapping
     repo: >-
       deb [arch={{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else 'arm64' if ansible_facts['architecture'] == 'aarch64' else ansible_facts['architecture'] }} signed-by=/etc/apt/keyrings/docker.asc] 
       https://download.docker.com/linux/ubuntu 
-      {{ ansible_facts['distribution_release'] }} 
+      {{ ansible_facts['distribution_release'] | default(ansible_distribution_release) }} 
       stable
     filename: docker
     state: present
+    update_cache: no # Switched off here to handle it explicitly below
+  become: yes
+
+# FIX: Force a manual, system-level cache update so APT is strictly refreshed
+- name: Explicitly force apt cache refresh
+  apt:
     update_cache: yes
+    force_apt_get: yes
   become: yes
 
 - name: Install Docker CE
@@ -46,8 +52,10 @@
       - docker-buildx-plugin
       - docker-compose-plugin
     state: present
-    update_cache: yes  # Ensures the newly added repo lists are actively referenced
   become: yes
+
+# ... [Keep your remaining custom data-root and systemd configuration tasks the same] ...
+
 
 - name: Ensure Docker data directory exists
   file:
