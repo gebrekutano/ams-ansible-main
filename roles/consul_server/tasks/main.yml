@@ -9,6 +9,12 @@
     - "{{ consul_config_dir }}"
     - "{{ consul_data_dir }}"
 
+- name: Ensure unzip is installed
+  apt:
+    name: unzip
+    state: present
+
+
 - name: Download Consul binary
   get_url:
     url: "https://releases.hashicorp.com/consul/{{ consul_version }}/consul_{{ consul_version }}_linux_amd64.zip"
