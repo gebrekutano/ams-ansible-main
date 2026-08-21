@@ -1,0 +1,71 @@
+- name: Create Consul directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ consul_config_dir }}"
+    - "{{ consul_data_dir }}"
+
+- name: Download Consul binary
+  get_url:
+    url: "https://releases.hashicorp.com/consul/{{ consul_version }}/consul_{{ consul_version }}_linux_amd64.zip"
+    dest: "/tmp/consul_{{ consul_version }}.zip"
+    mode: '0644'
+    force: no
+
+- name: Unzip Consul binary
+  unarchive:
+    src: "/tmp/consul_{{ consul_version }}.zip"
+    dest: /usr/local/bin/
+    remote_src: yes
+    extra_opts: ["-j"]
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Verify Consul binary exists
+  stat:
+    path: /usr/local/bin/consul
+  register: consul_binary_stat
+
+- name: Fail if Consul binary missing
+  fail:
+    msg: "Consul binary was not installed correctly!"
+  when: not consul_binary_stat.stat.exists
+
+- name: Upload Consul configuration
+  template:
+    src: consul.hcl.j2
+    dest: "{{ consul_config_dir }}/server.hcl"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Upload Consul systemd unit
+  template:
+    src: consul.service.j2
+    dest: /etc/systemd/system/consul.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Reload systemd to pick up new unit
+  systemd:
+    daemon_reload: yes
+
+- name: Enable and start Consul service
+  systemd:
+    name: consul
+    enabled: yes
+    state: started
+    daemon_reload: no
+
+- name: Restart Consul to apply configuration changes
+  systemd:
+    name: consul
+    state: restarted
+    enabled: yes
+

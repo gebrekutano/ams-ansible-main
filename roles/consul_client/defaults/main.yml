@@ -1,0 +1,2 @@
+consul_data_dir: /data-disk/consul
+consul_ui: false

@@ -1,0 +1,49 @@
+# Generates TLS certificates for secure communication
+# - name: Generate TLS for Nomad
+#   hosts: all
+#   become: true
+
+#   roles:
+#     - vault_cert
+#   tasks:
+#     - name: only run on non-nomad hosts
+#       debug:
+#         msg: "Running task on {{ inventory_hostname }}"
+
+# - name: Deploy Vault Agent on Nomad clients
+#   hosts: nomad_clients
+#   become: true
+#   roles:
+#     - role: vault-agent
+
+- hosts: consul_servers
+  become: true
+  roles:
+    - consul_server
+
+- hosts: consul_clients
+  become: true
+  roles:
+    - consul_client
+
+- name: Deploy Nomad servers
+  hosts: nomad_servers
+  become: true
+  roles:
+    - nomad_server
+
+- name: Deploy Nomad clients
+  hosts: nomad_clients
+  become: true
+  roles:
+    - nomad_client
+
+- name: install docker
+  hosts: all
+  become: true
+  roles:
+    - docker
+
+
+
+

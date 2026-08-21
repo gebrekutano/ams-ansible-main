@@ -1,0 +1,80 @@
+data_dir  = "{{ nomad_data_dir }}"
+bind_addr = "0.0.0.0"
+log_level = "DEBUG"
+
+plugin "docker" {
+  config {
+  }
+}
+
+acl {
+ enabled = false
+ }
+
+server {
+  enabled          = true
+  bootstrap_expect = {{ nomad_bootstrap_expect | default(3) }}
+
+  retry_join = [
+{% for host in groups['nomad_servers'] %}
+    "{{ hostvars[host]['ansible_host'] }}"{% if not loop.last %},{% endif %}
+{% endfor %}
+  ]
+}
+
+consul {
+  address              = "127.0.0.1:8500"
+  auto_advertise       = true
+  server_service_name  = "nomad"
+  ssl                  = {{ enable_tls | default(false) | lower }}
+{% if enable_tls | default(false) %}
+  ca_file              = "{{ tls_output_dir }}/ca.crt"
+  cert_file            = "{{ tls_output_dir }}/cert.crt"
+  key_file             = "{{ tls_output_dir }}/key.key"
+{% endif %}
+}
+
+{% if enable_tls | default(false) %}
+tls {
+  http = true
+  rpc  = true
+
+  ca_file   = "{{ tls_output_dir }}/ca.crt"
+  cert_file = "{{ tls_output_dir }}/cert.crt"
+  key_file  = "{{ tls_output_dir }}/key.key"
+
+  verify_server_hostname = true
+}
+{% endif %}
+
+client {
+  enabled = false
+}
+
+vault {
+  enabled = {{ vault_enabled | default(true) | lower }}
+  address = "http://{{ vault_addr | default('127.0.0.1') }}:8200"
+  role    = "nomad"
+  path    = "jwt-nomad"
+
+  default_identity {
+    aud  = ["vault.io"]
+    ttl  = "1h"
+  }
+}
+
+advertise {
+  http = "{{ ansible_host }}:4646"
+  rpc  = "{{ ansible_host }}:4647"
+  serf = "{{ ansible_host }}:4648"
+}
+
+telemetry {
+  collection_interval        = "5s"
+  prometheus_metrics         = true
+  publish_allocation_metrics = true
+  publish_node_metrics       = true
+  disable_hostname           = false
+}
+
+

@@ -1,0 +1,21 @@
+[Unit]
+Description=Nomad
+Documentation=https://www.nomadproject.io/docs/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=root
+Group=root
+ExecStart=/usr/local/bin/nomad agent -config=/etc/nomad.d
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Environment=NOMAD_ADDR=http://127.0.0.1:4646
+{% if enable_tls | default(false) %}
+Environment=NOMAD_CACERT={{ tls_output_dir }}/ca.crt
+{% endif %}
+Restart=always
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

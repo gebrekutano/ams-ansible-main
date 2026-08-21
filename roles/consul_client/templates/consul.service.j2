@@ -1,0 +1,19 @@
+[Unit]
+Description=Consul Agent
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=root
+Group=root
+ExecStart=/usr/local/bin/consul agent -config-dir={{ consul_config_dir }}
+ExecReload=/bin/kill -HUP $MAINPID
+Environment=CONSUL_HTTP_ADDR=http://127.0.0.1:8500
+{% if enable_tls | default(false) %}
+Environment=CONSUL_CACERT={{ tls_output_dir }}/ca.crt
+{% endif %}
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,30 @@
+vault_address: "https://vault-infra.safaricomet.net"
+vault_pki_path: "pki"
+vault_pki_role: "nomad"
+vault_token: "s.1234567890"
+
+nomad_datacenter: "dc1"
+nomad_data_dir: "/mnt/data-disk/nomad/data"
+nomad_version: "2.0.2"
+
+consul_version: "1.22.0"
+consul_data_dir: "/mnt/data-disk/consul"
+consul_config_dir: "/etc/consul.d"
+consul_bind_addr: "0.0.0.0"
+
+consul_ui: true
+consul_client_enabled: true
+consul_bootstrap_expect: 3
+
+vault_version: "1.21.3"
+vault_addr: "10.100.43.156"
+vault_role_id: "b270a922-168e-0dea-56a4-009090523322"
+vault_secret_id: "674b3c63-e825-b823-0800-8689ced7d4d7"
+vault_agent_config_dir: "/etc/vault-agent.d"
+vault_agent_service_name: "vault-agent"
+
+# TLS Configuration
+tls_output_dir: "/etc/ssl/nomad-consul"
+enable_tls: true
+
+

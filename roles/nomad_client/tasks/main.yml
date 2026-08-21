@@ -1,0 +1,102 @@
+#- name: Stop Nomad service if running
+#  ansible.builtin.systemd:
+#    name: nomad
+#    state: stopped
+#  ignore_errors: true
+#  become: true
+#
+#- name: Kill any stray Nomad processes
+#  ansible.builtin.shell: pkill -f nomad
+#  ignore_errors: true
+#  failed_when: false
+#  become: true
+#
+#- name: Force unmount any Nomad allocation directories
+#  ansible.builtin.shell: |
+#    mount | grep /mnt/data-disk/nomad/data/alloc | awk '{print $3}' | xargs -r -n1 umount -l
+#  ignore_errors: true
+#  failed_when: false
+#  become: true
+#
+#- name: Remove old Nomad data directory
+#  ansible.builtin.file:
+#    path: /mnt/data-disk/nomad
+#    state: absent
+#  ignore_errors: true
+#  failed_when: false
+#  become: true
+
+- name: Create directories for Nomad
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  loop:
+    - /etc/nomad.d
+    - "{{ nomad_data_dir }}"
+
+- name: Download Nomad binary from official HashiCorp release
+  get_url:
+    url: "https://releases.hashicorp.com/nomad/{{ nomad_version }}/nomad_{{ nomad_version }}_linux_amd64.zip"
+    dest: "/tmp/nomad_{{ nomad_version }}.zip"
+    mode: '0644'
+    force: no
+
+
+- name: Unzip Nomad binary to /usr/local/bin
+  unarchive:
+    src: "/tmp/nomad_{{ nomad_version }}.zip"
+    dest: /usr/local/bin/
+    remote_src: yes
+    extra_opts: [ "-j" ]
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Ensure Nomad binary exists
+  stat:
+    path: /usr/local/bin/nomad
+  register: nomad_binary_stat
+
+- name: Fail if Nomad binary is missing
+  fail:
+    msg: "Nomad binary was not installed correctly!"
+  when: not nomad_binary_stat.stat.exists
+
+- name: Verify Nomad binary installed
+  command: /usr/local/bin/nomad version
+  register: nomad_version_output
+  changed_when: false
+
+- name: Deploy Nomad systemd unit from template
+  template:
+    src: nomad.service.j2
+    dest: /etc/systemd/system/nomad.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Upload Nomad client configuration
+  template:
+    src: client.hcl.j2
+    dest: /etc/nomad.d/client.hcl
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
+
+- name: Reload systemd and start Nomad
+  systemd:
+    name: nomad
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Restart Nomad service
+  ansible.builtin.systemd:
+    name: nomad
+    state: restarted
+    enabled: true
+  become: true

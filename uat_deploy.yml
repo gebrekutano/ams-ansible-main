@@ -1,0 +1,9 @@
+---
+- name: UAT All-in-One Deployment
+  hosts: uat
+  become: true
+  roles:
+    - role: docker
+    - role: consul_server
+    - role: nomad_server
+    - role: nomad_client
