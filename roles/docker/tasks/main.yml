@@ -1,26 +1,40 @@
 ---
-
 - name: Install prerequisite packages
   apt:
     name:
-      - apt-transport-https
       - ca-certificates
       - curl
-      - software-properties-common
+      - gnupg
     state: present
     update_cache: yes
   become: yes
 
-- name: Add Docker GPG key
-  apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
+- name: Ensure keyrings directory exists
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
   become: yes
 
-- name: Add Docker repository
+- name: Download Docker GPG key
+  get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+    force: yes
+  become: yes
+
+- name: Add Docker apt repository
   apt_repository:
-    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    # Look closely below: We explicitly reference ansible_facts and sanitize architecture mapping
+    repo: >-
+      deb [arch={{ 'amd64' if ansible_facts['architecture'] == 'x86_64' else 'arm64' if ansible_facts['architecture'] == 'aarch64' else ansible_facts['architecture'] }} signed-by=/etc/apt/keyrings/docker.asc] 
+      https://download.docker.com/linux/ubuntu 
+      {{ ansible_facts['distribution_release'] }} 
+      stable
+    filename: docker
     state: present
+    update_cache: yes
   become: yes
 
 - name: Install Docker CE
@@ -29,8 +43,10 @@
       - docker-ce
       - docker-ce-cli
       - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
     state: present
-    update_cache: yes
+    update_cache: yes  # Ensures the newly added repo lists are actively referenced
   become: yes
 
 - name: Ensure Docker data directory exists
@@ -58,12 +74,13 @@
     group: root
     mode: "0644"
   become: yes
+  notify: Restart Docker
 
-- name: Reload systemd and restart Docker
+- name: Ensure Docker service is enabled and started
   systemd:
     name: docker
     daemon_reload: yes
-    state: restarted
+    state: started
     enabled: yes
   become: yes
 
@@ -73,3 +90,4 @@
     groups: docker
     append: yes
   become: yes
+  when: ansible_user != 'root'
