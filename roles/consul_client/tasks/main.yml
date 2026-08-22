@@ -11,14 +11,14 @@
 
 - name: Download Consul binary
   get_url:
-    url: "https://releases.hashicorp.com/consul/{{ consul_version }}/consul_{{ consul_version }}_linux_amd64.zip"
-    dest: "/tmp/consul_{{ consul_version }}.zip"
+    url: "https://releases.hashicorp.com/consul/1.22.0/consul_1.22.0_linux_amd64.zip"
+    dest: "/tmp/consul_1.22.0_linux_amd64.zip"
     mode: '0644'
     force: no
 
 - name: Unzip Consul binary
   unarchive:
-    src: "/tmp/consul_{{ consul_version }}.zip"
+    src: "/tmp/consul_1.22.0_linux_amd64.zip"
     dest: /usr/local/bin/
     remote_src: yes
     extra_opts: ["-j"]
